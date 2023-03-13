@@ -11,10 +11,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.activity_main.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class MainActivity : AppCompatActivity(),SearchView.OnQueryTextListener {
     private lateinit var kisilerListe : ArrayList<Kisiler>
     private lateinit var adapter: KisilerAdapter
+    private lateinit var kdi : KisilerDaoInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,15 +31,9 @@ class MainActivity : AppCompatActivity(),SearchView.OnQueryTextListener {
         recyclerView.setHasFixedSize(true)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        kisilerListe = ArrayList()
-        val kisi1 = Kisiler(1,"Ferhat","12345678910")
-        val kisi2 = Kisiler(2,"Fer","12345678")
+        kdi = ApiUtils.getKisilerDaoInterface()
 
-        kisilerListe.add(kisi1)
-        kisilerListe.add(kisi2)
-
-        adapter = KisilerAdapter(this,kisilerListe)
-        recyclerView.adapter = adapter
+        tumKisiler()
 
 
         fab.setOnClickListener {
@@ -68,6 +66,19 @@ class MainActivity : AppCompatActivity(),SearchView.OnQueryTextListener {
             val kisi_ad = editTextAd.text.toString().trim()
             val kisi_tel = editTextTel.text.toString().trim()
 
+            kdi.kisiEkle(kisi_ad,kisi_tel).enqueue(object : Callback<CRUDCevap>{
+                override fun onResponse(call: Call<CRUDCevap>, response: Response<CRUDCevap>) {
+
+                    tumKisiler()
+                }
+
+                override fun onFailure(call: Call<CRUDCevap>, t: Throwable) {
+
+
+                }
+
+            })
+
             Toast.makeText(applicationContext,"${kisi_ad}-${kisi_tel}",Toast.LENGTH_SHORT).show()
 
         }
@@ -80,6 +91,7 @@ class MainActivity : AppCompatActivity(),SearchView.OnQueryTextListener {
     override fun onQueryTextSubmit(query: String?): Boolean {
 
         if (query != null) {
+            aramaYap(query)
             Log.e("Gönderilen Arama",query)
         }
         return true
@@ -93,4 +105,47 @@ class MainActivity : AppCompatActivity(),SearchView.OnQueryTextListener {
         return true
 
     }
+
+    fun tumKisiler() {
+
+        kdi.tumKisiler().enqueue(object : Callback<KisilerCevap>{
+            override fun onResponse(call: Call<KisilerCevap>, response: Response<KisilerCevap>) {
+
+                if (response != null) {
+
+                    val liste = response.body()!!.kisiler
+                    adapter = KisilerAdapter(this@MainActivity,liste,kdi)
+                    recyclerView.adapter = adapter
+                }
+            }
+
+            override fun onFailure(call: Call<KisilerCevap>, t: Throwable) {
+
+            }
+
+        })
+    }
+
+    fun aramaYap(aramaKelime : String) {
+
+        kdi.kisiAra(aramaKelime).enqueue(object : Callback<KisilerCevap>{
+            override fun onResponse(call: Call<KisilerCevap>, response: Response<KisilerCevap>) {
+
+                if (response != null) {
+
+                    val liste = response.body()!!.kisiler
+                    adapter = KisilerAdapter(this@MainActivity,liste,kdi)
+                    recyclerView.adapter = adapter
+                }
+            }
+
+            override fun onFailure(call: Call<KisilerCevap>, t: Throwable) {
+
+            }
+
+        })
+    }
+
+
+
 }

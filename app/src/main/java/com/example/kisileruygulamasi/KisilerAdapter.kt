@@ -13,9 +13,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.android.synthetic.main.activity_main.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
-class KisilerAdapter(private val mContext : Context, private val kisilerListe:List<Kisiler>) :
-    RecyclerView.Adapter<KisilerAdapter.CardTasarimTutucu>() {
+class KisilerAdapter(private val mContext : Context,
+                     private var kisilerListe:List<Kisiler>,
+                     private val kdi : KisilerDaoInterface)
+    : RecyclerView.Adapter<KisilerAdapter.CardTasarimTutucu>() {
 
     inner class CardTasarimTutucu(tasarim : View) : RecyclerView.ViewHolder(tasarim) {
 
@@ -59,6 +65,19 @@ class KisilerAdapter(private val mContext : Context, private val kisilerListe:Li
                         Snackbar.make(holder.textViewKisiBilgi,"${kisi.kisiAd} Silinsin mi?",Snackbar.LENGTH_SHORT)
                             .setAction("EVET") {
 
+                                kdi.kisiSil(kisi.kisiId).enqueue(object :
+                                    Callback<CRUDCevap> {
+                                    override fun onResponse(call: Call<CRUDCevap>, response: Response<CRUDCevap>) {
+
+                                        tumKisiler()
+                                    }
+
+                                    override fun onFailure(call: Call<CRUDCevap>, t: Throwable) {
+
+
+                                    }
+
+                                })
                             }
                             .show()
 
@@ -93,6 +112,20 @@ class KisilerAdapter(private val mContext : Context, private val kisilerListe:Li
             val kisi_ad = editTextAd.text.toString().trim()
             val kisi_tel = editTextTel.text.toString().trim()
 
+            kdi.kisiGuncelle(kisi.kisiId,kisi_ad,kisi_tel).enqueue(object :
+                Callback<CRUDCevap> {
+                override fun onResponse(call: Call<CRUDCevap>, response: Response<CRUDCevap>) {
+
+                    tumKisiler()
+                }
+
+                override fun onFailure(call: Call<CRUDCevap>, t: Throwable) {
+
+
+                }
+
+            })
+
             Toast.makeText(mContext,"${kisi_ad}-${kisi_tel}",Toast.LENGTH_SHORT).show()
 
         }
@@ -100,6 +133,26 @@ class KisilerAdapter(private val mContext : Context, private val kisilerListe:Li
 
         }
         ad.create().show()
+    }
+
+    fun tumKisiler() {
+
+        kdi.tumKisiler().enqueue(object : Callback<KisilerCevap>{
+            override fun onResponse(call: Call<KisilerCevap>, response: Response<KisilerCevap>) {
+
+                if (response != null) {
+
+                    kisilerListe = response.body()!!.kisiler
+
+                    notifyDataSetChanged()
+                }
+            }
+
+            override fun onFailure(call: Call<KisilerCevap>, t: Throwable) {
+
+            }
+
+        })
     }
 
 }
